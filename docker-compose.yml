@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "${NGINX_PORT}:80"
+    depends_on:
+      - php
+      - node
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./src/server:/var/www/server
+    environment:
+      - TZ=${TZ}
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    working_dir: /var/www/server
+    tty: true
+    depends_on:
+      - mysql
+    volumes:
+      - ./src/server:/var/www/server
+  node:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    working_dir: /var/www/front
+    tty: true
+    ports:
+      - 33000:3000
+    volumes:
+      - ./src/front:/var/www/front
+  mysql:
+    build:
+      context: ./docker/mysql
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - ${MYSQL_PORT}:3306
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=${TZ}
+volumes:
+  mysql-data:
+    external: false
